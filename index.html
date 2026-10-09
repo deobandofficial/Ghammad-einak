@@ -25,14 +25,14 @@ select{font:14px var(--body);background:var(--bg);color:var(--ink);border:1.5px 
 #stage{position:relative}#stage:fullscreen{display:flex;align-items:center;justify-content:center;background:#000}#stage:fullscreen canvas{width:min(100vw,177.78vh);border-radius:0}
 body.hud .live,body.hud header,body.hud .bar,body.hud .note,body.hud .hint{display:none}
 body.songmode .bar{display:flex}body:not(.songmode) .bar #seek,body:not(.songmode) .bar .t{display:none}
-.skip{display:none}.bar,#mode{display:none!important}
+.skip{display:none}
 </style>
 <header><h1>غمّض عينك</h1><span class="by">Cairokee · Ghammad Einak</span></header>
 <div id="stage"><canvas id="cv" tabindex="0" aria-label="Comic-book style animated scenes"></canvas></div>
 <div class="live" id="live"><button id="prev" class="ghost" type="button" aria-label="Previous scene">Back</button><button id="next" type="button" aria-label="Next scene">Next</button><span class="nm"><b id="cnt">1 / 1</b><span id="nm"></span></span><select id="sel" aria-label="Jump to scene"></select><button id="mode" class="ghost" type="button">Live mode</button><button id="fs" class="ghost" type="button">Fullscreen</button></div>
-<p class="hint" id="hint">Right arrow, space or tap the right side: next scene. Left arrow or tap the left side: back. F: fullscreen. H: hide controls.</p>
+<p class="hint" id="hint">Right arrow, space or tap the right side: next scene. Left arrow or tap the left side: back. F: fullscreen. H: hide controls. M: switch between live mode and song mode.</p>
 <div class="bar">
-<button id="pp" type="button">Play song</button>
+<input type="file" id="songfile" accept="audio/*" aria-label="Choose your song file" style="max-width:150px;font-size:12px"><button id="pp" type="button">Play song</button>
 <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
 <span class="t" id="tm">0:00 / 0:00</span>
 </div>
@@ -45,13 +45,13 @@ function size(){var w=cv.clientWidth||S;cv.width=Math.round(w*dpr);cv.height=Mat
 size();window.addEventListener("resize",size);
 var ctx=null,an=null,data=null,ready=false,sm=0,hi=0,t=0,flash=0,prevBass=0,dragging=false;
 function fmt(s){s=Math.floor(s||0);return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2)}
-
+document.getElementById("songfile").addEventListener("change",function(){var f=this.files[0];if(!f)return;if(au.dataset.u)URL.revokeObjectURL(au.dataset.u);var u=URL.createObjectURL(f);au.dataset.u=u;au.src=u;note.textContent="Song loaded. Press Play song."});
 au.addEventListener("loadedmetadata",function(){tm.textContent="0:00 / "+fmt(au.duration)});
 au.addEventListener("timeupdate",function(){if(!dragging&&au.duration)seek.value=Math.round(au.currentTime/au.duration*1000);tm.textContent=fmt(au.currentTime)+" / "+fmt(au.duration)});
 au.addEventListener("ended",function(){pp.textContent="Play song"});
 seek.addEventListener("input",function(){dragging=true;if(au.duration)au.currentTime=seek.value/1000*au.duration});
 seek.addEventListener("change",function(){dragging=false});
-pp.addEventListener("click",function(){
+pp.addEventListener("click",function(){if(!au.src){note.textContent="Choose your song file first.";return}
 if(!ready){try{ctx=new (window.AudioContext||window.webkitAudioContext)();var s=ctx.createMediaElementSource(au);an=ctx.createAnalyser();an.fftSize=512;an.smoothingTimeConstant=0.78;s.connect(an);an.connect(ctx.destination);data=new Uint8Array(an.frequencyBinCount);ready=true}catch(e){note.textContent="Audio analysis isn't available here, so the eye will idle."}}
 if(ctx&&ctx.state==="suspended")ctx.resume();
 if(au.paused){au.play().then(function(){pp.textContent="Pause song"}).catch(function(){note.textContent="Couldn't start playback."})}else{au.pause();pp.textContent="Play song"}});
@@ -257,7 +257,7 @@ document.getElementById("fs").addEventListener("click",fsToggle);
 cv.addEventListener("click",function(e){if(!manual)return;var r=cv.getBoundingClientRect();go(e.clientX-r.left<r.width*0.3?idx-1:idx+1)});
 var tx=null;cv.addEventListener("touchstart",function(e){tx=e.touches[0].clientX},{passive:true});cv.addEventListener("touchend",function(e){if(tx===null||!manual)return;var dx=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(dx)>50){go(dx<0?idx+1:idx-1);e.preventDefault()}});
 document.addEventListener("keydown",function(e){var tg=e.target&&e.target.tagName,k=e.key;if(tg==="SELECT"||tg==="INPUT")return;
-if(k==="f"||k==="F"){fsToggle();return}if(k==="h"||k==="H"){document.body.classList.toggle("hud");size();return}
+if(k==="f"||k==="F"){fsToggle();return}if(k==="h"||k==="H"){document.body.classList.toggle("hud");size();return}if(k==="m"||k==="M"){setMode(!manual);return}
 if(!manual)return;if(k==="ArrowRight"||k==="PageDown"||k===" "||k==="Enter"||k==="ArrowDown"){if(tg==="BUTTON"&&(k===" "||k==="Enter"))return;go(idx+1);e.preventDefault()}
 else if(k==="ArrowLeft"||k==="PageUp"||k==="Backspace"||k==="ArrowUp"){go(idx-1);e.preventDefault()}else if(k==="Home"){go(0);e.preventDefault()}else if(k==="End"){go(SC.length-2);e.preventDefault()}});
 document.addEventListener("fullscreenchange",function(){setTimeout(size,60)});window.addEventListener("resize",size);
